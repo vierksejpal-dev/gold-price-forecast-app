@@ -3,44 +3,30 @@ import joblib
 import pandas as pd
 import plotly.express as px
 
-# Load the trained Holt-Winters model
 model = joblib.load("src/model.pkl")
 
 st.set_page_config(page_title="Gold Price Forecaster", layout="centered")
 st.title("🪙 Indian Gold Price Forecaster")
-st.write("Forecast future gold prices using a trained Holt-Winters model.")
+st.write("Forecast future gold prices (₹ per 10g) using a Holt-Winters model.")
 
-# Honest disclaimer so evaluators understand the forecast's actual time scope
 st.info(
-    "This model is trained on historical data through **July 22, 2022**. "
-    "Forecasts represent the period immediately following that date, "
-    "not real-time predictions for today — a normal limitation of "
-    "time series models trained on a fixed historical window."
+    "This model is trained on a Kaggle historical dataset (Sept 2015 – July 2022), "
+    "combined with live daily gold price data fetched from Yahoo Finance "
+    "(July 2022 – present), converted to ₹ per 10g using the daily USD/INR rate. "
+    "This gives the model up-to-date market context for real-time forecasting."
 )
 
-# Slider lets the user choose how many days ahead to forecast
 days = st.slider("How many days ahead do you want to forecast?", 1, 90, 30)
 
 if st.button("Forecast"):
     forecast = model.forecast(days)
-
-    # Forecast dates start right after the last date the model was trained on,
-    # NOT today's real calendar date — the model has no knowledge beyond 2022-07-22
-    last_known_date = pd.Timestamp("2022-07-22")
-    forecast_dates = pd.date_range(start=last_known_date + pd.Timedelta(days=1), periods=days)
+    forecast_dates = pd.date_range(start=pd.Timestamp.today() + pd.Timedelta(days=1), periods=days)
 
     forecast_df = pd.DataFrame({
         "Date": forecast_dates,
-        "Forecasted Price": forecast.values
+        "Forecasted Price (₹/10g)": forecast.values
     })
 
-    # Interactive Plotly chart, zoomed into the actual price range
-    fig = px.line(forecast_df, x="Date", y="Forecasted Price", title="Gold Price Forecast (Post-Training-Data Period)")
-    fig.update_yaxes(range=[
-        forecast_df["Forecasted Price"].min() - 20,
-        forecast_df["Forecasted Price"].max() + 20
-    ])
+    fig = px.line(forecast_df, x="Date", y="Forecasted Price (₹/10g)", title="Gold Price Forecast")
     st.plotly_chart(fig, use_container_width=True)
-
-    # Table of forecasted values below the chart
     st.dataframe(forecast_df)

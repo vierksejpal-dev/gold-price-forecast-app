@@ -1,5 +1,6 @@
 pandas
 numpy
+yfinance
 matplotlib
 statsmodels
 pmdarima
